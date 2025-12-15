@@ -9,6 +9,8 @@ export default function BookList() {
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [notification, setNotification] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -40,6 +42,11 @@ export default function BookList() {
     }
   };
 
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
   const fetchBooks = async () => {
     try {
       setLoading(true);
@@ -49,7 +56,7 @@ export default function BookList() {
       setBooks(data);
     } catch (error) {
       console.error('Error fetching books:', error);
-      alert('Erro ao carregar livros');
+      showNotification('Erro ao carregar livros', 'error');
     } finally {
       setLoading(false);
     }
@@ -73,13 +80,13 @@ export default function BookList() {
 
     // Validar tipo e tamanho
     if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecione apenas arquivos de imagem');
+      showNotification('Por favor, selecione apenas arquivos de imagem', 'error');
       e.target.value = '';
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('A imagem deve ter no máximo 2MB');
+      showNotification('A imagem deve ter no máximo 2MB', 'error');
       e.target.value = '';
       return;
     }
@@ -92,7 +99,7 @@ export default function BookList() {
       setFormData(prev => ({ ...prev, cover_image: base64String }));
     };
     reader.onerror = () => {
-      alert('Erro ao ler a imagem');
+      showNotification('Erro ao ler a imagem', 'error');
     };
     reader.readAsDataURL(file);
   };
@@ -101,7 +108,7 @@ export default function BookList() {
     e.preventDefault();
     
     if (!formData.title || !formData.author) {
-      alert('Título e autor são obrigatórios');
+      showNotification('Título e autor são obrigatórios', 'error');
       return;
     }
 
@@ -129,17 +136,24 @@ export default function BookList() {
 
       if (!response.ok) throw new Error('Failed to save');
       
-      alert(editingId ? 'Livro atualizado!' : 'Livro criado!');
+      showNotification(editingId ? 'Livro atualizado com sucesso!' : 'Livro criado com sucesso!');
       resetForm();
       fetchBooks();
     } catch (error) {
       console.error('Error saving book:', error);
-      alert('Erro ao salvar livro');
+      showNotification('Erro ao salvar livro', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Tem certeza que deseja deletar este livro?')) return;
+    setConfirmModal({
+      message: 'Tem certeza que deseja deletar este livro?',
+      onConfirm: () => executeDelete(id)
+    });
+  };
+
+  const executeDelete = async (id) => {
+    setConfirmModal(null);
 
     try {
       const response = await fetch(`/api/books/${id}`, {
@@ -149,7 +163,7 @@ export default function BookList() {
       if (!response.ok) {
         // Se já não existir, tratamos como sucesso para manter consistência
         if (response.status === 404) {
-          alert('Livro já removido. Atualizando lista...');
+          showNotification('Livro já removido', 'info');
           fetchBooks();
           return;
         }
@@ -164,8 +178,12 @@ export default function BookList() {
       fetchBooks();
     } catch (error) {
       console.error('Error deleting book:', error);
-      alert('Erro ao deletar livro');
+      showNotification('Erro ao deletar livro', 'error');
     }
+  };
+
+  const handleConfirmModalClose = () => {
+    setConfirmModal(null);
   };
 
   const handleEdit = (book) => {
@@ -183,6 +201,10 @@ export default function BookList() {
     setImagePreview(book.cover_image || '');
     setEditingId(book.id);
     setShowForm(true);
+    
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
   };
 
   const resetForm = () => {
@@ -204,6 +226,38 @@ export default function BookList() {
 
   return (
     <div className={styles.container}>
+      {notification && (
+        <div className={`${styles.notification} ${styles[notification.type]}`}>
+          {notification.message}
+        </div>
+      )}
+
+      {confirmModal && (
+        <div className={styles.modalOverlay} onClick={handleConfirmModalClose}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h3>Confirmação</h3>
+            <p>{confirmModal.message}</p>
+            <div className={styles.modalActions}>
+              <button 
+                onClick={handleConfirmModalClose}
+                className={styles.btnCancel}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  handleConfirmModalClose();
+                }}
+                className={styles.btnConfirm}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <h1>Adicione e gerencie seus livros</h1>
 
       <button 
@@ -337,11 +391,13 @@ export default function BookList() {
                   />
                 </div>
               )}
-              <h3>{book.title}</h3>
-              <p><strong>Autor:</strong> {book.author}</p>
-              {book.description && <p><strong>Descrição:</strong> {book.description}</p>}
-              {book.published_year && <p><strong>Ano:</strong> {book.published_year}</p>}
-              {book.isbn && <p><strong>ISBN:</strong> {book.isbn}</p>}
+              <div className={styles.bookContent}>
+                <h3>{book.title}</h3>
+                <p><strong>Autor:</strong> {book.author}</p>
+                {book.description && <p><strong>Descrição:</strong> {book.description}</p>}
+                {book.published_year && <p><strong>Ano:</strong> {book.published_year}</p>}
+                {book.isbn && <p><strong>ISBN:</strong> {book.isbn}</p>}
+              </div>
               
               <div className={styles.badges}>
                 {book.category_name && (
