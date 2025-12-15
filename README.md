@@ -36,13 +36,13 @@ Sistema completo de gerenciamento de biblioteca pessoal desenvolvido com Next.js
 ## 📸 Screenshots
 
 ### Tela Principal
-![Biblioteca Virtual - Tela Principal](../site1.png)
+![Biblioteca Virtual - Tela Principal](https://raw.githubusercontent.com/EdnaldoBerk/trabalhon2/main/site1.png)
 
 ### Gerenciamento de Livros
-![Biblioteca Virtual - Gerenciamento](../site2.png)
+![Biblioteca Virtual - Gerenciamento](https://raw.githubusercontent.com/EdnaldoBerk/trabalhon2/main/site2.png)
 
 ### Interface Completa
-![Biblioteca Virtual - Interface](../site3.png)
+![Biblioteca Virtual - Interface](https://raw.githubusercontent.com/EdnaldoBerk/trabalhon2/main/site3.png)
 
 ## 🚀 Como Executar
 
