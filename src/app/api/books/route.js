@@ -1,9 +1,13 @@
 import pool from '@/lib/db';
 
-// GET - Listar todos os livros
 export async function GET() {
   try {
-    const result = await pool.query('SELECT * FROM books ORDER BY created_at DESC');
+    const result = await pool.query(`
+      SELECT b.*, c.name as category_name, c.color as category_color 
+      FROM books b 
+      LEFT JOIN categories c ON b.category_id = c.id 
+      ORDER BY b.created_at DESC
+    `);
     return Response.json(result.rows);
   } catch (error) {
     console.error('Error fetching books:', error);
@@ -11,10 +15,9 @@ export async function GET() {
   }
 }
 
-// POST - Criar novo livro
 export async function POST(request) {
   try {
-    const { title, author, description, published_year, isbn, cover_image } = await request.json();
+    const { title, author, description, published_year, isbn, cover_image, category_id, reading_status, current_page } = await request.json();
 
     if (!title || !author) {
       return Response.json(
@@ -24,8 +27,8 @@ export async function POST(request) {
     }
 
     const result = await pool.query(
-      'INSERT INTO books (title, author, description, published_year, isbn, cover_image) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [title, author, description || null, published_year || null, isbn || null, cover_image || null]
+      'INSERT INTO books (title, author, description, published_year, isbn, cover_image, category_id, reading_status, current_page) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [title, author, description || null, published_year || null, isbn || null, cover_image || null, category_id || null, reading_status || 'quero_ler', current_page || null]
     );
 
     return Response.json(result.rows[0], { status: 201 });

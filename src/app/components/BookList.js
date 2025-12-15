@@ -5,6 +5,7 @@ import styles from '@/style/page.module.css';
 
 export default function BookList() {
   const [books, setBooks] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -16,13 +17,28 @@ export default function BookList() {
     published_year: '',
     isbn: '',
     cover_image: '',
+    category_id: '',
+    reading_status: 'quero_ler',
+    current_page: '',
   });
   const [imagePreview, setImagePreview] = useState('');
 
   // Buscar livros ao carregar
   useEffect(() => {
     fetchBooks();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories');
+      if (!response.ok) throw new Error('Failed to fetch');
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchBooks = async () => {
     try {
@@ -43,7 +59,7 @@ export default function BookList() {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value || ''
     }));
   };
 
@@ -100,6 +116,9 @@ export default function BookList() {
         published_year: formData.published_year ? Number(formData.published_year) : null,
         isbn: formData.isbn?.trim() || null,
         cover_image: formData.cover_image || null,
+        category_id: formData.category_id ? Number(formData.category_id) : null,
+        reading_status: formData.reading_status || 'quero_ler',
+        current_page: formData.current_page ? Number(formData.current_page) : null,
       };
 
       const response = await fetch(url, {
@@ -151,8 +170,15 @@ export default function BookList() {
 
   const handleEdit = (book) => {
     setFormData({
-      ...book,
+      title: book.title || '',
+      author: book.author || '',
+      description: book.description || '',
+      published_year: book.published_year || '',
+      isbn: book.isbn || '',
       cover_image: book.cover_image || '',
+      category_id: book.category_id || '',
+      reading_status: book.reading_status || 'quero_ler',
+      current_page: book.current_page || '',
     });
     setImagePreview(book.cover_image || '');
     setEditingId(book.id);
@@ -167,6 +193,9 @@ export default function BookList() {
       published_year: '',
       isbn: '',
       cover_image: '',
+      category_id: '',
+      reading_status: 'quero_ler',
+      current_page: '',
     });
     setImagePreview('');
     setEditingId(null);
@@ -229,6 +258,40 @@ export default function BookList() {
             onChange={handleInputChange}
           />
 
+          <select
+            name="category_id"
+            value={formData.category_id}
+            onChange={handleInputChange}
+            className={styles.select}
+          >
+            <option value="">Selecione uma categoria</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+
+          <select
+            name="reading_status"
+            value={formData.reading_status}
+            onChange={handleInputChange}
+            className={styles.select}
+          >
+            <option value="quero_ler">Quero Ler</option>
+            <option value="lendo">Lendo Agora</option>
+            <option value="concluido">Concluído</option>
+          </select>
+
+          {formData.reading_status === 'lendo' && (
+            <input
+              type="number"
+              name="current_page"
+              placeholder="Página atual"
+              value={formData.current_page}
+              onChange={handleInputChange}
+              min="0"
+            />
+          )}
+
           <div className={styles.fileInputWrapper}>
             <label htmlFor="cover_image" className={styles.fileLabel}>
               {imagePreview ? 'Alterar capa' : 'Adicionar capa'}
@@ -279,6 +342,22 @@ export default function BookList() {
               {book.description && <p><strong>Descrição:</strong> {book.description}</p>}
               {book.published_year && <p><strong>Ano:</strong> {book.published_year}</p>}
               {book.isbn && <p><strong>ISBN:</strong> {book.isbn}</p>}
+              
+              <div className={styles.badges}>
+                {book.category_name && (
+                  <span 
+                    className={styles.badge} 
+                    style={{ backgroundColor: book.category_color || '#38bdf8' }}
+                  >
+                    {book.category_name}
+                  </span>
+                )}
+                <span className={`${styles.badge} ${styles[book.reading_status || 'quero_ler']}`}>
+                  {book.reading_status === 'quero_ler' ? '📚 Quero Ler' : 
+                   book.reading_status === 'lendo' ? `📖 Lendo${book.current_page ? ` - Pág. ${book.current_page}` : ''}` : 
+                   '✅ Concluído'}
+                </span>
+              </div>
               
               <div className={styles.actions}>
                 <button 
